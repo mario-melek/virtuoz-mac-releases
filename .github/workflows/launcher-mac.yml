@@ -1,0 +1,40 @@
+name: Launcher Mac
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version du Launcher (ex. 1.3.0)"
+        required: true
+      resources:
+        description: "Adresse du zip des ressources du Launcher (app.asar, app.asar.unpacked, installer)"
+        required: true
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x64]
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rosetta 2 (pour tester la version Intel)
+        if: ${{ matrix.arch == 'x64' }}
+        run: softwareupdate --install-rosetta --agree-to-license
+      - name: Construire Virtuoz Launcher.app (${{ matrix.arch }})
+        run: |
+          curl -fsSL -o launcher-resources.zip "${{ inputs.resources }}"
+          bash build/make-launcher-mac.sh ${{ matrix.arch }} ${{ inputs.version }} launcher-resources.zip
+      - name: Le Launcher démarre et tient 25 secondes
+        run: |
+          ditto -x -k "Virtuoz-Launcher-Mac-${{ matrix.arch }}.zip" t
+          SB=$(mktemp -d)
+          CZ_LAUNCHER_USERDATA="$SB" "t/Virtuoz Launcher.app/Contents/MacOS/Virtuoz Launcher" > "$SB/out.txt" 2>&1 &
+          PID=$!; sleep 25
+          if kill -0 $PID 2>/dev/null; then echo "running after 25 s: ok"; kill $PID; else echo "it stopped by itself"; cat "$SB/out.txt"; exit 1; fi
+          cat "$SB/launcher.log"
+          grep -q "Virtuoz Launcher ${{ inputs.version }}" "$SB/launcher.log"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: launcher-mac-${{ matrix.arch }}
+          path: Virtuoz-Launcher-Mac-${{ matrix.arch }}.zip
+          retention-days: 7
