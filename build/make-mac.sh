@@ -83,6 +83,6 @@ echo "== packages"
 cd "$W/out"
 ditto -c -k --keepParent Virtuoz.app "$ROOT/Virtuoz-$V-mac-$ARCH.zip"
 mkdir dmg; ditto Virtuoz.app dmg/Virtuoz.app; ln -s /Applications dmg/Applications
-hdiutil create -volname "Virtuoz" -srcfolder dmg -ov -format UDBZ "$ROOT/Virtuoz-$V-Mac-$ARCH.dmg" >/dev/null
+hdiutil create -volname "Virtuoz" -srcfolder dmg -ov -fs HFS+ -format UDBZ "$ROOT/Virtuoz-$V-Mac-$ARCH.dmg" >/dev/null
 rm -rf dmg
 ls -la "$ROOT"/Virtuoz-"$V"-*
