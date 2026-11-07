@@ -2,6 +2,10 @@ name: Version Mac
 on:
   workflow_dispatch:
     inputs:
+      test_only:
+        description: "Tester seulement l'installation de la version déjà publiée"
+        type: boolean
+        default: false
       version:
         description: "Version (celle publiée pour Windows, ex. 1.0.0)"
         required: true
@@ -13,6 +17,7 @@ permissions:
   contents: write
 jobs:
   build:
+    if: ${{ !inputs.test_only }}
     strategy:
       fail-fast: false
       matrix:
@@ -78,6 +83,7 @@ jobs:
           gh release create "v$V" --repo "$GITHUB_REPOSITORY" --title "Virtuoz $V (Mac)" --notes-file notes.md --latest *.dmg *.zip update-manifest.json
   install-test:
     needs: publish
+    if: ${{ always() && (inputs.test_only || needs.publish.result == 'success') }}
     strategy:
       fail-fast: false
       matrix:
@@ -92,14 +98,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Installation comme un membre (install.sh)
-        run: curl -fsSL https://raw.githubusercontent.com/mario-melek/virtuoz/main/install.sh | CZ_NO_TTY=1 CZ_NO_OPEN=1 bash || test $? -eq 3
+        run: curl -fsSL "https://raw.githubusercontent.com/mario-melek/virtuoz/main/install.sh?t=$GITHUB_RUN_ID" | CZ_NO_TTY=1 CZ_NO_OPEN=1 bash || test $? -eq 3
       - name: Ce qui est installé
         run: |
           defaults read /Applications/Virtuoz.app/Contents/Info CFBundleShortVersionString
           codesign --verify --deep --strict /Applications/Virtuoz.app && echo "signature ok"
           cat /Applications/Virtuoz.app/Contents/Resources/app-update.yml
-      - name: Autotest de l'application installée (son propre ffmpeg et Python)
+      - name: Autotest de l'application installée (avec ce que l'installateur a mis en place)
         env:
           SELFTEST_FLAGS: ${{ matrix.flags }}
           SELFTEST_SKIP_EXPORT: ${{ matrix.skip_export }}
-        run: bash build/selftest.sh /Applications/Virtuoz.app auto
+        run: bash build/selftest.sh /Applications/Virtuoz.app installed

@@ -2,6 +2,8 @@
 # Runs Virtuoz's own self test (start, database, window, tools, a short demo export) in a sandbox folder.
 #   bash build/selftest.sh /path/to/Virtuoz.app [auto]
 # "auto": the app downloads its own ffmpeg and Python like on a member's Mac (slower); otherwise it uses the computer's.
+# "installed": the app installed by install.sh: its Python environment (made by the installer in
+# ~/Library/Application Support/Virtuoz/python) is linked into the sandbox, like the app finds it at home.
 # SELFTEST_FLAGS: extra app flags (--software-graphics on a Mac with no graphics card, like GitHub's Intel Macs).
 # SELFTEST_SKIP_PAINT=1: the window check is reported but not judged (an Intel build run under Rosetta 2).
 # SELFTEST_SKIP_EXPORT=1: the demo export is reported but not judged (a VM with no graphics at all).
@@ -10,8 +12,13 @@ set -uo pipefail
 APP="$1"; MODE="${2:-}"
 SB=$(mktemp -d); REPORT="$SB/report.json"
 export CZ_USERDATA="$SB/userdata" CZ_WORKSPACE="$SB/workspace" CZ_HIDDEN=1 CZ_SELF_TEST=1
-[ "$MODE" = auto ] || export CZ_RUNTIME_AUTO=0
-mkdir -p "$CZ_USERDATA" "$CZ_WORKSPACE"
+UD="$CZ_USERDATA"
+[ "$MODE" = auto ] || [ "$MODE" = installed ] || export CZ_RUNTIME_AUTO=0
+mkdir -p "$UD" "$CZ_WORKSPACE"
+if [ "$MODE" = installed ]; then
+  HOMEPY="$HOME/Library/Application Support/Virtuoz/python"
+  [ -x "$HOMEPY/bin/python3" ] && ln -s "$HOMEPY" "$UD/python" && echo "Python environment of the installer: $HOMEPY" || echo "no Python environment from the installer in $HOMEPY"
+fi
 echo "self test of $APP (sandbox $SB)"
 "$APP/Contents/MacOS/Virtuoz" --self-test="$REPORT" --cz-sandbox="$SB" --mute-audio ${SELFTEST_FLAGS:-} &
 PID=$!
@@ -21,7 +28,7 @@ wait $PID; CODE=$?
 echo "exit code $CODE"
 if [ ! -f "$REPORT" ]; then
   echo "FAILED: no report"
-  find "$CZ_USERDATA" -name '*.log' -exec tail -n 60 {} \; 2>/dev/null
+  find "$UD" -name '*.log' -exec tail -n 60 {} \; 2>/dev/null
   exit 1
 fi
 python3 - "$REPORT" "${SELFTEST_SKIP_TOOLS:-}" <<'PY'
@@ -43,6 +50,6 @@ print("report ok:", r.get("ok"), "| judged failures:", bad or "none")
 sys.exit(1 if bad else 0)
 PY
 RES=$?
-L=$(find "$CZ_USERDATA" -name 'main.log' | head -1)
+L=$(find "$UD" -name 'main.log' | head -1)
 [ -n "$L" ] && { echo '--- graphics and export lines of main.log'; grep -E 'graphics|gpu|webgl|export|self-test' "$L" | cut -c1-300 | tail -n 40; }
 [ $RES -eq 0 ]
