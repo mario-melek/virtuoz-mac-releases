@@ -24,13 +24,16 @@ jobs:
         run: |
           curl -fsSL -o launcher-resources.zip "${{ inputs.resources }}"
           bash build/make-launcher-mac.sh ${{ matrix.arch }} ${{ inputs.version }} launcher-resources.zip
-      - name: Le Launcher démarre et tient 25 secondes
+      - name: Le Launcher démarre et reste ouvert
         run: |
           ditto -x -k "Virtuoz-Launcher-Mac-${{ matrix.arch }}.zip" t
           SB=$(mktemp -d)
           CZ_LAUNCHER_USERDATA="$SB" "t/Virtuoz Launcher.app/Contents/MacOS/Virtuoz Launcher" > "$SB/out.txt" 2>&1 &
-          PID=$!; sleep 25
-          if kill -0 $PID 2>/dev/null; then echo "running after 25 s: ok"; kill $PID; else echo "it stopped by itself"; cat "$SB/out.txt"; exit 1; fi
+          PID=$!
+          # its log line comes within seconds natively; under Rosetta 2 the first start is much slower
+          for _ in $(seq 1 90); do grep -qs "Virtuoz Launcher ${{ inputs.version }}" "$SB/launcher.log" && break; sleep 1; done
+          sleep 10
+          if kill -0 $PID 2>/dev/null; then echo "still running: ok"; kill $PID; else echo "it stopped by itself"; cat "$SB/out.txt"; exit 1; fi
           cat "$SB/launcher.log"
           grep -q "Virtuoz Launcher ${{ inputs.version }}" "$SB/launcher.log"
       - uses: actions/upload-artifact@v4
