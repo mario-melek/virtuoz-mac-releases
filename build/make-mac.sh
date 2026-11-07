@@ -4,7 +4,7 @@
 # Out (in the current folder): Virtuoz-<v>-Mac-<chip>.dmg (install) and Virtuoz-<v>-mac-<chip>.zip (the update gate's copy).
 set -euo pipefail
 ARCH="$1"; V="$2"
-EV="44.10.1"   # the Electron of Virtuoz.exe
+EV="44.4.5"   # the Electron of Virtuoz.exe
 ROOT="$PWD"; ICON="$ROOT/build/icon-1024.png"
 W="$ROOT/work-$ARCH"; rm -rf "$W"; mkdir -p "$W"; cd "$W"
 PB=/usr/libexec/PlistBuddy
