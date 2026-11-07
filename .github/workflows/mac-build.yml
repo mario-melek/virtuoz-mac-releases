@@ -104,6 +104,8 @@ jobs:
           defaults read /Applications/Virtuoz.app/Contents/Info CFBundleShortVersionString
           codesign --verify --deep --strict /Applications/Virtuoz.app && echo "signature ok"
           cat /Applications/Virtuoz.app/Contents/Resources/app-update.yml
+          echo "Launcher: $(defaults read "/Applications/Virtuoz Launcher.app/Contents/Info" CFBundleShortVersionString)"
+          codesign --verify --deep --strict "/Applications/Virtuoz Launcher.app" && echo "launcher signature ok"
       - name: Autotest de l'application installée (avec ce que l'installateur a mis en place)
         env:
           SELFTEST_FLAGS: ${{ matrix.flags }}
