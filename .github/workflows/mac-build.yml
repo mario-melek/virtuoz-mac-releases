@@ -19,8 +19,10 @@ jobs:
         include:
           - arch: arm64
             runner: macos-15
+            flags: ""
           - arch: x64
             runner: macos-15-intel
+            flags: "--software-graphics"   # GitHub's Intel Macs are VMs with no graphics card
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -31,6 +33,9 @@ jobs:
           command -v ffmpeg || brew install ffmpeg
           ffmpeg -version | head -1; python3 --version
       - name: Autotest de l'application construite
+        env:
+          SELFTEST_FLAGS: ${{ matrix.flags }}
+          SELFTEST_SKIP_TOOLS: "python claude"   # install-test installs and checks them
         run: bash build/selftest.sh "work-${{ matrix.arch }}/out/Virtuoz.app"
       - uses: actions/upload-artifact@v4
         with:
@@ -76,6 +81,7 @@ jobs:
             runner: macos-15
           - arch: x64
             runner: macos-15-intel
+            flags: "--software-graphics"
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -87,4 +93,6 @@ jobs:
           codesign --verify --deep --strict /Applications/Virtuoz.app && echo "signature ok"
           cat /Applications/Virtuoz.app/Contents/Resources/app-update.yml
       - name: Autotest de l'application installée (son propre ffmpeg et Python)
+        env:
+          SELFTEST_FLAGS: ${{ matrix.flags }}
         run: bash build/selftest.sh /Applications/Virtuoz.app auto
