@@ -21,11 +21,14 @@ jobs:
             runner: macos-15
             flags: ""
           - arch: x64
-            runner: macos-15-intel
-            flags: "--software-graphics"   # GitHub's Intel Macs are VMs with no graphics card
+            runner: macos-15   # built and tested on Apple silicon under Rosetta 2 (its GPU); also tested on a real Intel VM below
+            flags: ""
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
+      - name: Rosetta 2 (pour tester la version Intel)
+        if: ${{ matrix.arch == 'x64' }}
+        run: softwareupdate --install-rosetta --agree-to-license
       - name: Construire Virtuoz.app (${{ matrix.arch }})
         run: bash build/make-mac.sh ${{ matrix.arch }} ${{ inputs.version }}
       - name: ffmpeg et Python pour l'autotest
@@ -81,7 +84,8 @@ jobs:
             runner: macos-15
           - arch: x64
             runner: macos-15-intel
-            flags: "--software-graphics"
+            flags: "--software-graphics"   # GitHub's Intel Macs are VMs with no graphics card: 3D export not judged there
+            skip_export: "1"
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -95,4 +99,5 @@ jobs:
       - name: Autotest de l'application installée (son propre ffmpeg et Python)
         env:
           SELFTEST_FLAGS: ${{ matrix.flags }}
+          SELFTEST_SKIP_EXPORT: ${{ matrix.skip_export }}
         run: bash build/selftest.sh /Applications/Virtuoz.app auto
