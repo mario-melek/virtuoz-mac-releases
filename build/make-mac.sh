@@ -24,7 +24,7 @@ rm -f "$R/default_app.asar" "$R/electron.icns"
 cp -R win/resources/. "$R/"
 # Windows only: the bundled ffmpeg.exe (on a Mac the app downloads its own) and the UAC helper
 rm -rf "$R/runtime" "$R/elevate.exe" "$R/files.json"
-printf 'owner: mario-melek\nrepo: virtuoz-mac-releases\nprovider: github\nupdaterCacheDirName: virtuoz-updater\n' > "$R/app-update.yml"
+printf 'owner: mario-melek\nrepo: virtuoz-mac-releases\nprovider: github\nreleaseType: release\nupdaterCacheDirName: virtuoz-updater\n' > "$R/app-update.yml"
 
 mkdir icon.iconset
 for s in 16 32 128 256 512; do
