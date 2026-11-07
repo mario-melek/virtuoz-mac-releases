@@ -20,6 +20,10 @@ APP="$W/out/Virtuoz Launcher.app"; mv el/Electron.app "$APP"
 R="$APP/Contents/Resources"
 rm -f "$R/default_app.asar" "$R/electron.icns"
 cp -R res/app.asar res/app.asar.unpacked res/installer "$R/"
+# Chromium's languages: en only, like Creatorize's launcher and the Windows one
+for D in "$R" "$APP/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources"; do
+  find "$D" -maxdepth 1 -name '*.lproj' ! -name 'en.lproj' -exec rm -rf {} +
+done
 
 mkdir icon.iconset
 for s in 16 32 128 256 512; do

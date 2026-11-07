@@ -24,6 +24,10 @@ rm -f "$R/default_app.asar" "$R/electron.icns"
 cp -R win/resources/. "$R/"
 # Windows only: the bundled ffmpeg.exe (on a Mac the app downloads its own) and the UAC helper
 rm -rf "$R/runtime" "$R/elevate.exe" "$R/files.json"
+# Chromium's languages: like Creatorize (en only), plus French, which the app asks Chromium for (--lang=fr)
+for D in "$R" "$APP/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources"; do
+  find "$D" -maxdepth 1 -name '*.lproj' ! -name 'en.lproj' ! -name 'fr.lproj' ! -name 'fr_*.lproj' -exec rm -rf {} +
+done
 printf 'owner: mario-melek\nrepo: virtuoz-mac-releases\nprovider: github\nreleaseType: release\nupdaterCacheDirName: virtuoz-updater\n' > "$R/app-update.yml"
 
 mkdir icon.iconset
@@ -79,6 +83,6 @@ echo "== packages"
 cd "$W/out"
 ditto -c -k --keepParent Virtuoz.app "$ROOT/Virtuoz-$V-mac-$ARCH.zip"
 mkdir dmg; ditto Virtuoz.app dmg/Virtuoz.app; ln -s /Applications dmg/Applications
-hdiutil create -volname "Virtuoz" -srcfolder dmg -ov -format UDZO "$ROOT/Virtuoz-$V-Mac-$ARCH.dmg" >/dev/null
+hdiutil create -volname "Virtuoz" -srcfolder dmg -ov -format UDBZ "$ROOT/Virtuoz-$V-Mac-$ARCH.dmg" >/dev/null
 rm -rf dmg
 ls -la "$ROOT"/Virtuoz-"$V"-*
