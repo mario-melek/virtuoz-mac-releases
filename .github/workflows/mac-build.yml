@@ -1,0 +1,90 @@
+name: Version Mac
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (celle publiée pour Windows, ex. 1.0.0)"
+        required: true
+      publish:
+        description: "Publier la version (sinon : construire et tester seulement)"
+        type: boolean
+        default: false
+permissions:
+  contents: write
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+          - arch: x64
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construire Virtuoz.app (${{ matrix.arch }})
+        run: bash build/make-mac.sh ${{ matrix.arch }} ${{ inputs.version }}
+      - name: ffmpeg et Python pour l'autotest
+        run: |
+          command -v ffmpeg || brew install ffmpeg
+          ffmpeg -version | head -1; python3 --version
+      - name: Autotest de l'application construite
+        run: bash build/selftest.sh "work-${{ matrix.arch }}/out/Virtuoz.app"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac-${{ matrix.arch }}
+          path: Virtuoz-${{ inputs.version }}-*
+          retention-days: 7
+  publish:
+    needs: build
+    if: ${{ inputs.publish }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: dist
+      - name: Fichier de mise à jour et publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ inputs.version }}
+        run: |
+          cd dist
+          python3 - <<'PY'
+          import hashlib, json, os
+          v = os.environ["V"]; a = {}
+          for n in sorted(os.listdir(".")):
+              if n.endswith(".zip"):
+                  h = hashlib.sha256(open(n, "rb").read()).hexdigest()
+                  a[n] = {"size": os.path.getsize(n), "sha256": h}
+          json.dump({"version": v, "assets": a}, open("update-manifest.json", "w"), indent=2)
+          print(a)
+          PY
+          printf '%s\n' "Version Mac de Virtuoz $V (Apple Silicon : Mac-arm64, Intel : Mac-x64)." "" \
+            "Le plus simple : dans Terminal, \`curl -fsSL https://raw.githubusercontent.com/mario-melek/virtuoz/main/install.sh | bash\`" "" \
+            "Avec le .dmg : glissez Virtuoz dans Applications, puis lancez une fois dans Terminal \`xattr -dr com.apple.quarantine /Applications/Virtuoz.app\` (l'app n'est pas encore signée par Apple)." > notes.md
+          gh release create "v$V" --repo "$GITHUB_REPOSITORY" --title "Virtuoz $V (Mac)" --notes-file notes.md --latest *.dmg *.zip update-manifest.json
+  install-test:
+    needs: publish
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+          - arch: x64
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installation comme un membre (install.sh)
+        run: curl -fsSL https://raw.githubusercontent.com/mario-melek/virtuoz/main/install.sh | CZ_NO_TTY=1 CZ_NO_OPEN=1 bash || test $? -eq 3
+      - name: Ce qui est installé
+        run: |
+          defaults read /Applications/Virtuoz.app/Contents/Info CFBundleShortVersionString
+          codesign --verify --deep --strict /Applications/Virtuoz.app && echo "signature ok"
+          cat /Applications/Virtuoz.app/Contents/Resources/app-update.yml
+      - name: Autotest de l'application installée (son propre ffmpeg et Python)
+        run: bash build/selftest.sh /Applications/Virtuoz.app auto
