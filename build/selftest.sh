@@ -3,6 +3,7 @@
 #   bash build/selftest.sh /path/to/Virtuoz.app [auto]
 # "auto": the app downloads its own ffmpeg and Python like on a member's Mac (slower); otherwise it uses the computer's.
 # SELFTEST_FLAGS: extra app flags (--software-graphics on a Mac with no graphics card, like GitHub's Intel Macs).
+# SELFTEST_SKIP_PAINT=1: the window check is reported but not judged (an Intel build run under Rosetta 2).
 # SELFTEST_SKIP_EXPORT=1: the demo export is reported but not judged (a VM with no graphics at all).
 # SELFTEST_SKIP_TOOLS: tools not judged here, e.g. "python claude" on a bare build Mac (install.sh installs them).
 set -uo pipefail
@@ -32,7 +33,7 @@ db = r.get("db") or {}; print(m(db.get("ok")), "database", db.get("error") or ""
 print(m(r.get("paint") != "blank"), "window paint:", r.get("paint"))
 bad = [s.get("name") for s in r.get("steps") or [] if s.get("ok") is False]
 if db.get("ok") is False: bad.append("database")
-if r.get("paint") == "blank": bad.append("paint")
+if r.get("paint") == "blank" and not os.environ.get("SELFTEST_SKIP_PAINT"): bad.append("paint")
 for t, v in (r.get("tools") or {}).items():
     ok = (v or {}).get("ok"); print(m(ok), "tool", t, (v or {}).get("error") or "", "(not judged here)" if t in skip else "")
     if ok is False and t not in skip: bad.append(t)

@@ -21,8 +21,9 @@ jobs:
             runner: macos-15
             flags: ""
           - arch: x64
-            runner: macos-15   # built and tested on Apple silicon under Rosetta 2 (its GPU); also tested on a real Intel VM below
+            runner: macos-15   # Intel build tested under Rosetta 2 for its 3D export (a real GPU); its window is judged on a real Intel VM in install-test
             flags: ""
+            skip_paint: "1"
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -39,6 +40,7 @@ jobs:
         env:
           SELFTEST_FLAGS: ${{ matrix.flags }}
           SELFTEST_SKIP_TOOLS: "python claude"   # install-test installs and checks them
+          SELFTEST_SKIP_PAINT: ${{ matrix.skip_paint }}
         run: bash build/selftest.sh "work-${{ matrix.arch }}/out/Virtuoz.app"
       - uses: actions/upload-artifact@v4
         with:
