@@ -21,8 +21,11 @@ jobs:
         if: ${{ matrix.arch == 'x64' }}
         run: softwareupdate --install-rosetta --agree-to-license
       - name: Construire Virtuoz Launcher.app (${{ matrix.arch }})
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          curl -fsSL -o launcher-resources.zip "${{ inputs.resources }}"
+          curl -fsSL -o launcher-resources.zip "${{ inputs.resources }}" ||
+            gh release download "launcher-v${{ inputs.version }}" -R mario-melek/virtuoz -p "Virtuoz-Launcher-resources-${{ inputs.version }}.zip" -O launcher-resources.zip --clobber
           bash build/make-launcher-mac.sh ${{ matrix.arch }} ${{ inputs.version }} launcher-resources.zip
       - name: Le Launcher démarre et reste ouvert
         run: |

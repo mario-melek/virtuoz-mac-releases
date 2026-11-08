@@ -11,7 +11,9 @@ PB=/usr/libexec/PlistBuddy
 setp() { "$PB" -c "Set :$2 $3" "$1" 2>/dev/null || "$PB" -c "Add :$2 string $3" "$1"; }
 
 echo "== downloads"
-curl -fsSL -o win.zip "https://github.com/mario-melek/virtuoz-releases/releases/download/v$V/Virtuoz-$V-win-x64.zip"
+# github.com's release links can answer 504 (2026-11-08) while the API answers: then gh (the API)
+curl -fsSL -o win.zip "https://github.com/mario-melek/virtuoz-releases/releases/download/v$V/Virtuoz-$V-win-x64.zip" ||
+  gh release download "v$V" -R mario-melek/virtuoz-releases -p "Virtuoz-$V-win-x64.zip" -O win.zip --clobber
 curl -fsSL -o electron.zip "https://github.com/electron/electron/releases/download/v$EV/electron-v$EV-darwin-$ARCH.zip"
 mkdir win el out
 ditto -x -k win.zip win

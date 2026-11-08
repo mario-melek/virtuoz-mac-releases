@@ -36,6 +36,8 @@ jobs:
         if: ${{ matrix.arch == 'x64' }}
         run: softwareupdate --install-rosetta --agree-to-license
       - name: Construire Virtuoz.app (${{ matrix.arch }})
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: bash build/make-mac.sh ${{ matrix.arch }} ${{ inputs.version }}
       - name: ffmpeg et Python pour l'autotest
         run: |
