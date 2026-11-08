@@ -69,14 +69,18 @@ jobs:
           V: ${{ inputs.version }}
         run: |
           cd dist
+          # schema and minLauncher come from the Windows manifest of the same version (published first), like Creatorize
+          gh release download "v$V" --repo mario-melek/virtuoz-releases -p update-manifest.json -O ../win-manifest.json
           python3 - <<'PY'
           import hashlib, json, os
           v = os.environ["V"]; a = {}
+          w = json.load(open("../win-manifest.json"))
           for n in sorted(os.listdir(".")):
               if n.endswith((".zip", ".dmg")):   # like Creatorize: the dmgs too
                   h = hashlib.sha256(open(n, "rb").read()).hexdigest()
                   a[n] = {"size": os.path.getsize(n), "sha256": h}
-          json.dump({"version": v, "assets": a}, open("update-manifest.json", "w"), indent=2)
+          m = {"version": v, "schema": w.get("schema"), "minLauncher": w.get("minLauncher"), "assets": a}
+          json.dump({k: x for k, x in m.items() if x is not None}, open("update-manifest.json", "w"), indent=2)
           print(a)
           PY
           printf '%s\n' "Version Mac de Virtuoz $V (Apple Silicon : Mac-arm64, Intel : Mac-x64)." "" \
